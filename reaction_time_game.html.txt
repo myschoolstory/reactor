@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction Time Challenge</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .setup-screen {
+            display: block;
+        }
+
+        .player-input {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-input label {
+            min-width: 80px;
+            font-weight: bold;
+        }
+
+        .player-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
+        }
+
+        .player-input input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .game-screen {
+            display: none;
+        }
+
+        .game-area {
+            width: 100%;
+            height: 300px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-area.waiting {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            animation: pulse 1.5s infinite;
+        }
+
+        .game-area.ready {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            animation: none;
+        }
+
+        .game-area.too-early {
+            background: linear-gradient(45deg, #ff4757, #c44569);
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .score-display {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .results-screen {
+            display: none;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .results-table th {
+            background: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+
+        .winner {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .round-info {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>⚡ Reaction Time Challenge</h1>
+        
+        <!-- Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <p style="margin-bottom: 20px; opacity: 0.9;">Enter player names to start the challenge!</p>
+            <div class="player-input">
+                <label>Player 1:</label>
+                <input type="text" id="player1Name" placeholder="Enter name" maxlength="15">
+            </div>
+            <div class="player-input">
+                <label>Player 2:</label>
+                <input type="text" id="player2Name" placeholder="Enter name" maxlength="15">
+            </div>
+            <button class="btn" onclick="startGame()">Start Game</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="game-screen" id="gameScreen">
+            <div class="player-info">
+                <div>
+                    <strong id="currentPlayerName">Player 1</strong>
+                    <div class="round-info" id="roundInfo">Round 1 of 5</div>
+                </div>
+                <div class="score-display" id="scoreDisplay">
+                    Average: -- ms
+                </div>
+            </div>
+            
+            <div class="game-area waiting" id="gameArea" onclick="handleClick()">
+                <div id="gameText">Click when GREEN!</div>
+            </div>
+            
+            <div style="opacity: 0.8; margin-top: 15px;">
+                <p><strong>Instructions:</strong></p>
+                <p>Wait for the area to turn GREEN, then click as fast as you can!</p>
+                <p>Click too early and you'll have to retry that round.</p>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div class="results-screen" id="resultsScreen">
+            <h2 style="margin-bottom: 20px;">🏆 Final Results</h2>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Average Time</th>
+                        <th>Best Time</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                </tbody>
+            </table>
+            <div id="winnerAnnouncement" style="font-size: 1.5em; margin: 20px 0;"></div>
+            <button class="btn" onclick="resetGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        let players = [];
+        let currentPlayerIndex = 0;
+        let currentRound = 1;
+        let maxRounds = 5;
+        let gameState = 'waiting'; // 'waiting', 'ready', 'clicked'
+        let startTime = 0;
+        let gameTimeout;
+
+        function startGame() {
+            const player1Name = document.getElementById('player1Name').value.trim() || 'Player 1';
+            const player2Name = document.getElementById('player2Name').value.trim() || 'Player 2';
+            
+            players = [
+                { name: player1Name, times: [], totalTime: 0 },
+                { name: player2Name, times: [], totalTime: 0 }
+            ];
+            
+            currentPlayerIndex = 0;
+            currentRound = 1;
+            
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            startRound();
+        }
+
+        function startRound() {
+            const currentPlayer = players[currentPlayerIndex];
+            document.getElementById('currentPlayerName').textContent = currentPlayer.name;
+            document.getElementById('roundInfo').textContent = `Round ${currentRound} of ${maxRounds}`;
+            
+            // Update score display
+            const avgTime = currentPlayer.times.length > 0 ? 
+                Math.round(currentPlayer.totalTime / currentPlayer.times.length) : 0;
+            document.getElementById('scoreDisplay').textContent = 
+                currentPlayer.times.length > 0 ? `Average: ${avgTime} ms` : 'Average: -- ms';
+            
+            resetGameArea();
+            
+            // Random delay between 2-6 seconds
+            const delay = Math.random() * 4000 + 2000;
+            gameTimeout = setTimeout(() => {
+                if (gameState === 'waiting') {
+                    showGreen();
+                }
+            }, delay);
+        }
+
+        function resetGameArea() {
+            const gameArea = document.getElementById('gameArea');
+            const gameText = document.getElementById('gameText');
+            
+            gameArea.className = 'game-area waiting';
+            gameText.textContent = 'Click when GREEN!';
+            gameState = 'waiting';
+        }
+
+        function showGreen() {
+            const gameArea = document.getElementById('gameArea');
+            const gameText = document.getElementById('gameText');
+            
+            gameArea.className = 'game-area ready';
+            gameText.textContent = 'CLICK NOW!';
+            gameState = 'ready';
+            startTime = Date.now();
+        }
+
+        function handleClick() {
+            if (gameState === 'waiting') {
+                // Too early!
+                clearTimeout(gameTimeout);
+                const gameArea = document.getElementById('gameArea');
+                const gameText = document.getElementById('gameText');
+                
+                gameArea.className = 'game-area too-early';
+                gameText.textContent = 'Too early! Try again...';
+                gameState = 'too-early';
+                
+                setTimeout(() => {
+                    startRound();
+                }, 1500);
+                
+            } else if (gameState === 'ready') {
+                // Good click!
+                const reactionTime = Date.now() - startTime;
+                gameState = 'clicked';
+                
+                const gameArea = document.getElementById('gameArea');
+                const gameText = document.getElementById('gameText');
+                
+                gameText.textContent = `${reactionTime} ms!`;
+                
+                // Record the time
+                const currentPlayer = players[currentPlayerIndex];
+                currentPlayer.times.push(reactionTime);
+                currentPlayer.totalTime += reactionTime;
+                
+                setTimeout(() => {
+                    nextTurn();
+                }, 1500);
+            }
+        }
+
+        function nextTurn() {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+            
+            // If we've completed a full round for both players
+            if (currentPlayerIndex === 0) {
+                currentRound++;
+            }
+            
+            // Check if game is over
+            if (currentRound > maxRounds) {
+                showResults();
+                return;
+            }
+            
+            startRound();
+        }
+
+        function showResults() {
+            document.getElementById('gameScreen').style.display = 'none';
+            document.getElementById('resultsScreen').style.display = 'block';
+            
+            const resultsBody = document.getElementById('resultsBody');
+            resultsBody.innerHTML = '';
+            
+            // Calculate averages and find winner
+            let winner = null;
+            let bestAverage = Infinity;
+            
+            players.forEach(player => {
+                const average = Math.round(player.totalTime / player.times.length);
+                const best = Math.min(...player.times);
+                
+                if (average < bestAverage) {
+                    bestAverage = average;
+                    winner = player;
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${player.name}</td>
+                    <td>${average} ms</td>
+                    <td>${best} ms</td>
+                `;
+                
+                if (player === winner) {
+                    row.style.background = 'rgba(255, 215, 0, 0.2)';
+                }
+                
+                resultsBody.appendChild(row);
+            });
+            
+            document.getElementById('winnerAnnouncement').innerHTML = 
+                `<span class="winner">🏆 ${winner.name} wins with ${bestAverage} ms average!</span>`;
+        }
+
+        function resetGame() {
+            document.getElementById('resultsScreen').style.display = 'none';
+            document.getElementById('setupScreen').style.display = 'block';
+            
+            // Reset form
+            document.getElementById('player1Name').value = '';
+            document.getElementById('player2Name').value = '';
+            
+            // Clear any timeouts
+            clearTimeout(gameTimeout);
+        }
+
+        // Prevent accidental clicks during page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Focus on first input
+            document.getElementById('player1Name').focus();
+        });
+    </script>
+</body>
+</html>
