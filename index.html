@@ -4,438 +4,592 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reaction Time Challenge</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* Custom styles for the game */
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
             display: flex;
             justify-content: center;
             align-items: center;
-            color: white;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
         }
 
-        .game-container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            background: linear-gradient(45deg, #ffd700, #ffed4e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .setup-screen {
-            display: block;
-        }
-
-        .player-input {
-            margin: 15px 0;
+        #game-container {
+            width: 100%;
+            max-width: 900px; /* Max width for larger screens */
+            min-height: 500px; /* Minimum height for the game area */
+            background-color: #2d3748; /* Slightly lighter background for game area */
+            border-radius: 1.5rem; /* Large rounded corners */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4); /* Stronger shadow */
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            padding: 1.5rem;
+            box-sizing: border-box; /* Include padding in width/height */
+            position: relative; /* For absolute positioning of messages */
         }
 
-        .player-input label {
-            min-width: 80px;
-            font-weight: bold;
+        .screen {
+            display: none; /* Hidden by default */
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
 
-        .player-input input {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            font-size: 16px;
+        .screen.active {
+            display: flex; /* Show active screen */
         }
 
-        .player-input input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .btn {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 15px;
+        /* Specific styles for the game area during a round */
+        #game-area {
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.1s ease-out; /* Smooth transition for color change */
+            min-height: 300px; /* Ensure click area is large enough */
+            border-radius: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #game-area.waiting {
+            background-color: #e53e3e; /* Red for waiting */
+        }
+
+        #game-area.go {
+            background-color: #48bb78; /* Green for go */
+        }
+
+        #game-area.too-soon {
+            background-color: #ecc94b; /* Yellow for too soon */
+        }
+
+        /* Button styles */
+        .btn {
+            @apply px-8 py-4 text-xl font-bold rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105;
+            background: linear-gradient(145deg, #63b3ed, #4299e1); /* Blue gradient */
+            color: white;
+            border: none;
+            cursor: pointer;
         }
 
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(145deg, #4299e1, #3182ce);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
         }
 
-        .btn:active {
-            transform: translateY(0);
+        .btn-green {
+            background: linear-gradient(145deg, #68d391, #48bb78); /* Green gradient */
         }
 
-        .game-screen {
-            display: none;
+        .btn-green:hover {
+            background: linear-gradient(145deg, #48bb78, #38a169);
         }
 
-        .game-area {
-            width: 100%;
-            height: 300px;
-            border-radius: 15px;
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+        .btn-red {
+            background: linear-gradient(145deg, #fc8181, #e53e3e); /* Red gradient */
         }
 
-        .game-area.waiting {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            animation: pulse 1.5s infinite;
+        .btn-red:hover {
+            background: linear-gradient(145deg, #e53e3e, #c53030);
         }
 
-        .game-area.ready {
-            background: linear-gradient(45deg, #4ecdc4, #44a08d);
-            animation: none;
+        /* Input field styles */
+        input[type="number"] {
+            @apply p-3 text-lg rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500;
         }
 
-        .game-area.too-early {
-            background: linear-gradient(45deg, #ff4757, #c44569);
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .player-info {
-            display: flex;
-            justify-content: space-between;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-        }
-
-        .score-display {
-            font-size: 1.2em;
-            margin: 10px 0;
-        }
-
-        .results-screen {
-            display: none;
-        }
-
-        .results-table {
+        /* Table styles for results */
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
+            margin-top: 1.5rem;
+            background-color: #4a5568; /* Darker gray for table background */
+            border-radius: 0.75rem;
+            overflow: hidden; /* For rounded corners on table */
         }
 
-        .results-table th,
-        .results-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid #2d3748; /* Darker border */
+            text-align: center;
         }
 
-        .results-table th {
-            background: rgba(255, 255, 255, 0.2);
+        th {
+            background-color: #2d3748; /* Even darker for header */
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.9rem;
         }
 
-        .winner {
-            background: linear-gradient(45deg, #ffd700, #ffed4e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: bold;
-            font-size: 1.2em;
+        tr:last-child td {
+            border-bottom: none;
         }
 
-        .hidden {
+        /* Message box for alerts */
+        #message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #2d3748;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
             display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 300px;
+            text-align: center;
         }
 
-        .round-info {
-            font-size: 1.1em;
-            margin-bottom: 15px;
-            color: #ffd700;
+        #message-box p {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        #message-box button {
+            @apply btn px-6 py-3 text-lg;
+        }
+
+        /* Styles for player insights section */
+        #player-insights-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem; /* Space between insight cards */
+        }
+
+        .insight-content {
+            padding-top: 0.5rem;
+            border-top: 1px solid #4a5568; /* Light separator */
+            margin-top: 0.5rem;
         }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1>⚡ Reaction Time Challenge</h1>
-        
-        <!-- Setup Screen -->
-        <div class="setup-screen" id="setupScreen">
-            <p style="margin-bottom: 20px; opacity: 0.9;">Enter player names to start the challenge!</p>
-            <div class="player-input">
-                <label>Player 1:</label>
-                <input type="text" id="player1Name" placeholder="Enter name" maxlength="15">
+    <div id="game-container" class="flex flex-col items-center justify-center p-6 bg-gray-800 rounded-3xl shadow-2xl">
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen active">
+            <h1 class="text-5xl font-extrabold mb-8 text-blue-400">Reaction Time Challenge</h1>
+            <p class="text-xl mb-6">Test your reflexes against your friends!</p>
+            <div class="mb-8">
+                <label for="num-players" class="block text-2xl font-semibold mb-4">Number of Players:</label>
+                <input type="number" id="num-players" min="1" value="2" class="w-32 text-center">
             </div>
-            <div class="player-input">
-                <label>Player 2:</label>
-                <input type="text" id="player2Name" placeholder="Enter name" maxlength="15">
-            </div>
-            <button class="btn" onclick="startGame()">Start Game</button>
+            <button id="start-game-btn" class="btn">Start Game</button>
         </div>
 
         <!-- Game Screen -->
-        <div class="game-screen" id="gameScreen">
-            <div class="player-info">
-                <div>
-                    <strong id="currentPlayerName">Player 1</strong>
-                    <div class="round-info" id="roundInfo">Round 1 of 5</div>
-                </div>
-                <div class="score-display" id="scoreDisplay">
-                    Average: -- ms
-                </div>
+        <div id="game-screen" class="screen">
+            <h2 id="player-info" class="text-4xl font-bold mb-6 text-blue-300"></h2>
+            <p id="round-info" class="text-2xl mb-4 text-gray-300"></p>
+            <div id="game-area" class="w-full h-64 md:h-80 lg:h-96 bg-red-500 rounded-2xl flex items-center justify-center text-3xl font-bold text-white select-none">
+                <span id="game-message">Get Ready...</span>
             </div>
-            
-            <div class="game-area waiting" id="gameArea" onclick="handleClick()">
-                <div id="gameText">Click when GREEN!</div>
-            </div>
-            
-            <div style="opacity: 0.8; margin-top: 15px;">
-                <p><strong>Instructions:</strong></p>
-                <p>Wait for the area to turn GREEN, then click as fast as you can!</p>
-                <p>Click too early and you'll have to retry that round.</p>
-            </div>
+            <p id="reaction-time-display" class="text-3xl font-semibold mt-6 mb-8"></p>
+            <button id="next-round-btn" class="btn btn-green mt-4" style="display: none;">Next Round</button>
         </div>
 
         <!-- Results Screen -->
-        <div class="results-screen" id="resultsScreen">
-            <h2 style="margin-bottom: 20px;">🏆 Final Results</h2>
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Average Time</th>
-                        <th>Best Time</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBody">
-                </tbody>
-            </table>
-            <div id="winnerAnnouncement" style="font-size: 1.5em; margin: 20px 0;"></div>
-            <button class="btn" onclick="resetGame()">Play Again</button>
+        <div id="results-screen" class="screen">
+            <h2 class="text-4xl font-extrabold mb-8 text-blue-400">Game Over!</h2>
+            <h3 id="winner-display" class="text-3xl font-bold mb-6 text-green-400"></h3>
+            <div class="w-full overflow-x-auto">
+                <table id="results-table" class="min-w-full">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Round 1</th>
+                            <th>Round 2</th>
+                            <th>Round 3</th>
+                            <th>Round 4</th>
+                            <th>Round 5</th>
+                            <th>Average (ms)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Results will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <button id="play-again-btn" class="btn btn-blue mt-8">Play Again</button>
+            <!-- New button for Gemini API integration -->
+            <button id="generate-insights-btn" class="btn btn-blue mt-4">Generate Player Insights ✨</button>
+            <div id="insights-loading" class="text-xl text-gray-400 mt-4 hidden">Generating insights...</div>
+            <div id="player-insights-container" class="w-full mt-8">
+                <!-- Insights will be loaded here by JavaScript -->
+            </div>
         </div>
+
+        <!-- Message Box for alerts -->
+        <div id="message-box" class="hidden">
+            <p id="message-text"></p>
+            <button id="message-ok-btn" class="btn">OK</button>
+        </div>
+
     </div>
 
     <script>
-        let players = [];
+        // Get DOM elements
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultsScreen = document.getElementById('results-screen');
+
+        const numPlayersInput = document.getElementById('num-players');
+        const startGameBtn = document.getElementById('start-game-btn');
+
+        const playerInfo = document.getElementById('player-info');
+        const roundInfo = document.getElementById('round-info');
+        const gameArea = document.getElementById('game-area');
+        const gameMessage = document.getElementById('game-message');
+        const reactionTimeDisplay = document.getElementById('reaction-time-display');
+        const nextRoundBtn = document.getElementById('next-round-btn');
+
+        const winnerDisplay = document.getElementById('winner-display');
+        const resultsTableBody = document.querySelector('#results-table tbody');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const messageOkBtn = document.getElementById('message-ok-btn');
+
+        // New DOM elements for Gemini API integration
+        const generateInsightsBtn = document.getElementById('generate-insights-btn');
+        const playerInsightsContainer = document.getElementById('player-insights-container');
+        const insightsLoading = document.getElementById('insights-loading');
+
+        // Game state variables
+        let numPlayers = 0;
+        let players = []; // Array of { name: 'Player X', scores: [], average: 0 }
         let currentPlayerIndex = 0;
         let currentRound = 1;
-        let maxRounds = 5;
-        let gameState = 'waiting'; // 'waiting', 'ready', 'clicked'
-        let startTime = 0;
-        let gameTimeout;
+        const MAX_ROUNDS = 5;
 
+        let gamePhase = 'waiting'; // 'waiting', 'ready', 'go', 'too-soon', 'finished-round'
+        let startTime = 0;
+        let timeoutId = null; // To store the timeout for the 'go' cue
+
+        /**
+         * Displays a custom message box instead of alert().
+         * @param {string} message - The message to display.
+         */
+        function showMessageBox(message) {
+            messageText.textContent = message;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add('flex');
+        }
+
+        /**
+         * Hides the custom message box.
+         */
+        function hideMessageBox() {
+            messageBox.classList.add('hidden');
+            messageBox.classList.remove('flex');
+        }
+
+        /**
+         * Switches the active screen.
+         * @param {HTMLElement} screenToShow - The screen element to make active.
+         */
+        function showScreen(screenToShow) {
+            [startScreen, gameScreen, resultsScreen].forEach(screen => {
+                screen.classList.remove('active');
+            });
+            screenToShow.classList.add('active');
+        }
+
+        /**
+         * Initializes the game state and starts the first round for the first player.
+         */
         function startGame() {
-            const player1Name = document.getElementById('player1Name').value.trim() || 'Player 1';
-            const player2Name = document.getElementById('player2Name').value.trim() || 'Player 2';
-            
-            players = [
-                { name: player1Name, times: [], totalTime: 0 },
-                { name: player2Name, times: [], totalTime: 0 }
-            ];
-            
+            numPlayers = parseInt(numPlayersInput.value);
+            if (isNaN(numPlayers) || numPlayers < 1) {
+                showMessageBox("Please enter a valid number of players (1 or more).");
+                return;
+            }
+
+            // Initialize players array
+            players = Array.from({ length: numPlayers }, (_, i) => ({
+                name: `Player ${i + 1}`,
+                scores: [],
+                average: 0
+            }));
+
             currentPlayerIndex = 0;
             currentRound = 1;
-            
-            document.getElementById('setupScreen').style.display = 'none';
-            document.getElementById('gameScreen').style.display = 'block';
-            
+            showScreen(gameScreen);
             startRound();
         }
 
+        /**
+         * Sets up and starts a new reaction time round.
+         */
         function startRound() {
-            const currentPlayer = players[currentPlayerIndex];
-            document.getElementById('currentPlayerName').textContent = currentPlayer.name;
-            document.getElementById('roundInfo').textContent = `Round ${currentRound} of ${maxRounds}`;
-            
-            // Update score display
-            const avgTime = currentPlayer.times.length > 0 ? 
-                Math.round(currentPlayer.totalTime / currentPlayer.times.length) : 0;
-            document.getElementById('scoreDisplay').textContent = 
-                currentPlayer.times.length > 0 ? `Average: ${avgTime} ms` : 'Average: -- ms';
-            
-            resetGameArea();
-            
-            // Random delay between 2-6 seconds
-            const delay = Math.random() * 4000 + 2000;
-            gameTimeout = setTimeout(() => {
-                if (gameState === 'waiting') {
-                    showGreen();
-                }
+            // Reset UI for new round
+            gameArea.classList.remove('go', 'too-soon');
+            gameArea.classList.add('waiting');
+            gameMessage.textContent = 'Get Ready...';
+            reactionTimeDisplay.textContent = '';
+            nextRoundBtn.style.display = 'none';
+            gamePhase = 'waiting';
+
+            // Update player and round info
+            playerInfo.textContent = `${players[currentPlayerIndex].name}'s Turn`;
+            roundInfo.textContent = `Round ${currentRound} of ${MAX_ROUNDS}`;
+
+            // Clear any existing timeout
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+
+            // Random delay before changing to 'go'
+            const delay = Math.random() * 3000 + 1500; // 1.5 to 4.5 seconds
+            timeoutId = setTimeout(() => {
+                gameArea.classList.remove('waiting');
+                gameArea.classList.add('go');
+                gameMessage.textContent = 'GO!';
+                startTime = performance.now(); // Record time when 'GO!' appears
+                gamePhase = 'go';
             }, delay);
         }
 
-        function resetGameArea() {
-            const gameArea = document.getElementById('gameArea');
-            const gameText = document.getElementById('gameText');
-            
-            gameArea.className = 'game-area waiting';
-            gameText.textContent = 'Click when GREEN!';
-            gameState = 'waiting';
-        }
-
-        function showGreen() {
-            const gameArea = document.getElementById('gameArea');
-            const gameText = document.getElementById('gameText');
-            
-            gameArea.className = 'game-area ready';
-            gameText.textContent = 'CLICK NOW!';
-            gameState = 'ready';
-            startTime = Date.now();
-        }
-
-        function handleClick() {
-            if (gameState === 'waiting') {
-                // Too early!
-                clearTimeout(gameTimeout);
-                const gameArea = document.getElementById('gameArea');
-                const gameText = document.getElementById('gameText');
-                
-                gameArea.className = 'game-area too-early';
-                gameText.textContent = 'Too early! Try again...';
-                gameState = 'too-early';
-                
-                setTimeout(() => {
-                    startRound();
-                }, 1500);
-                
-            } else if (gameState === 'ready') {
-                // Good click!
-                const reactionTime = Date.now() - startTime;
-                gameState = 'clicked';
-                
-                const gameArea = document.getElementById('gameArea');
-                const gameText = document.getElementById('gameText');
-                
-                gameText.textContent = `${reactionTime} ms!`;
-                
-                // Record the time
-                const currentPlayer = players[currentPlayerIndex];
-                currentPlayer.times.push(reactionTime);
-                currentPlayer.totalTime += reactionTime;
-                
-                setTimeout(() => {
-                    nextTurn();
-                }, 1500);
+        /**
+         * Handles the player's click/tap on the game area.
+         */
+        function recordReaction() {
+            if (gamePhase === 'go') {
+                const reactionTime = performance.now() - startTime;
+                players[currentPlayerIndex].scores.push(reactionTime);
+                reactionTimeDisplay.textContent = `Your Reaction Time: ${reactionTime.toFixed(2)} ms`;
+                gameMessage.textContent = 'Nice!';
+                gamePhase = 'finished-round';
+                nextRoundBtn.style.display = 'block'; // Show next round button
+                clearTimeout(timeoutId); // Clear any pending 'go' timeout, though it should have fired
+            } else if (gamePhase === 'waiting') {
+                // Player clicked too soon
+                gameArea.classList.remove('waiting');
+                gameArea.classList.add('too-soon');
+                gameMessage.textContent = 'Too Soon!';
+                reactionTimeDisplay.textContent = 'Penalty: +500 ms'; // Assign a penalty
+                players[currentPlayerIndex].scores.push(500); // Add a penalty score
+                gamePhase = 'too-soon';
+                nextRoundBtn.style.display = 'block'; // Show next round button
+                clearTimeout(timeoutId); // Clear the 'go' timeout
             }
+            // If gamePhase is 'finished-round' or 'too-soon', ignore further clicks
         }
 
-        function nextTurn() {
-            currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-            
-            // If we've completed a full round for both players
-            if (currentPlayerIndex === 0) {
+        /**
+         * Advances to the next round or next player, or displays results if game is over.
+         */
+        function nextRoundOrPlayer() {
+            // If the current player has completed all rounds
+            if (currentRound >= MAX_ROUNDS && currentPlayerIndex === numPlayers - 1) {
+                // All players have finished all rounds
+                displayResults();
+            } else if (currentRound < MAX_ROUNDS && currentPlayerIndex === numPlayers - 1) {
+                // Current player is the last player, but not all rounds are done
+                // Move to the next round, starting with Player 1
                 currentRound++;
+                currentPlayerIndex = 0;
+                startRound();
+            } else {
+                // Move to the next player in the current round
+                currentPlayerIndex++;
+                startRound();
             }
-            
-            // Check if game is over
-            if (currentRound > maxRounds) {
-                showResults();
-                return;
-            }
-            
-            startRound();
         }
 
-        function showResults() {
-            document.getElementById('gameScreen').style.display = 'none';
-            document.getElementById('resultsScreen').style.display = 'block';
-            
-            const resultsBody = document.getElementById('resultsBody');
-            resultsBody.innerHTML = '';
-            
-            // Calculate averages and find winner
-            let winner = null;
-            let bestAverage = Infinity;
-            
+        /**
+         * Calculates averages and displays the final results.
+         */
+        function displayResults() {
+            // Calculate averages for all players
             players.forEach(player => {
-                const average = Math.round(player.totalTime / player.times.length);
-                const best = Math.min(...player.times);
-                
-                if (average < bestAverage) {
-                    bestAverage = average;
-                    winner = player;
-                }
-                
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${player.name}</td>
-                    <td>${average} ms</td>
-                    <td>${best} ms</td>
-                `;
-                
-                if (player === winner) {
-                    row.style.background = 'rgba(255, 215, 0, 0.2)';
-                }
-                
-                resultsBody.appendChild(row);
+                const totalScore = player.scores.reduce((sum, score) => sum + score, 0);
+                player.average = totalScore / player.scores.length;
             });
-            
-            document.getElementById('winnerAnnouncement').innerHTML = 
-                `<span class="winner">🏆 ${winner.name} wins with ${bestAverage} ms average!</span>`;
+
+            // Sort players by average score (lowest first)
+            players.sort((a, b) => a.average - b.average);
+
+            // Populate the results table
+            resultsTableBody.innerHTML = ''; // Clear previous results
+            players.forEach(player => {
+                const row = resultsTableBody.insertRow();
+                row.insertCell().textContent = player.name;
+                player.scores.forEach(score => {
+                    row.insertCell().textContent = score.toFixed(2);
+                });
+                row.insertCell().textContent = player.average.toFixed(2);
+            });
+
+            // Determine and display the winner
+            const winner = players[0]; // Winner is the first player after sorting
+            winnerDisplay.textContent = `${winner.name} wins with an average reaction time of ${winner.average.toFixed(2)} ms!`;
+
+            showScreen(resultsScreen);
+
+            // Reset insights section and button visibility
+            playerInsightsContainer.innerHTML = '';
+            generateInsightsBtn.style.display = 'block'; // Show the insights button
+            generateInsightsBtn.disabled = false;
+            insightsLoading.classList.add('hidden');
         }
 
+        /**
+         * Resets the game to its initial state, ready for a new game.
+         */
         function resetGame() {
-            document.getElementById('resultsScreen').style.display = 'none';
-            document.getElementById('setupScreen').style.display = 'block';
-            
-            // Reset form
-            document.getElementById('player1Name').value = '';
-            document.getElementById('player2Name').value = '';
-            
-            // Clear any timeouts
-            clearTimeout(gameTimeout);
+            numPlayers = 0;
+            players = [];
+            currentPlayerIndex = 0;
+            currentRound = 1;
+            gamePhase = 'waiting';
+            startTime = 0;
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+            numPlayersInput.value = 2; // Reset input field
+            showScreen(startScreen);
         }
 
-        // Prevent accidental clicks during page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Focus on first input
-            document.getElementById('player1Name').focus();
-        });
+        /**
+         * Generates and displays player insights using the Gemini API.
+         * This function constructs a prompt for each player, sends it to the Gemini API,
+         * and then displays the generated insights in an expandable section.
+         */
+        async function generatePlayerInsights() {
+            generateInsightsBtn.disabled = true; // Disable button during generation
+            insightsLoading.classList.remove('hidden'); // Show loading message
+            playerInsightsContainer.innerHTML = ''; // Clear previous insights
+
+            for (let i = 0; i < players.length; i++) {
+                const player = players[i];
+                const rank = i + 1; // Rank based on sorted array (lowest average is rank 1)
+
+                // Construct a detailed prompt for the LLM
+                let prompt = `Generate a brief, encouraging summary of ${player.name}'s performance in a reaction time game. `;
+                prompt += `Their individual round scores were: ${player.scores.map(s => s.toFixed(2) + 'ms').join(', ')}. `;
+                prompt += `Their average reaction time was ${player.average.toFixed(2)}ms. `;
+                prompt += `They ranked ${rank} out of ${numPlayers} players. `;
+                prompt += `Also, include one fun, general tip to improve reaction time (not specific to their scores, but general advice). `;
+                prompt += `Finally, add a lighthearted, personalized comment. Keep the entire response concise, about 3-4 sentences total.`;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // Canvas will automatically provide the API key at runtime
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    // Make the API call to Gemini
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    // Check if the response contains valid content
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const insightText = result.candidates[0].content.parts[0].text;
+
+                        // Create an expandable section for each player's insight
+                        const insightDiv = document.createElement('div');
+                        insightDiv.classList.add('bg-gray-700', 'p-4', 'rounded-lg', 'mb-4', 'shadow-md');
+                        insightDiv.innerHTML = `
+                            <button class="flex justify-between items-center w-full text-left font-bold text-xl text-blue-300 hover:text-blue-200 focus:outline-none" onclick="toggleInsight(this)">
+                                <span>${player.name}'s Insight</span>
+                                <span class="text-2xl">+</span>
+                            </button>
+                            <div class="insight-content mt-2 text-gray-300 hidden">
+                                <p>${insightText}</p>
+                            </div>
+                        `;
+                        playerInsightsContainer.appendChild(insightDiv);
+
+                    } else {
+                        // Handle cases where the API response is unexpected or empty
+                        console.error('Gemini API response structure unexpected:', result);
+                        const insightDiv = document.createElement('div');
+                        insightDiv.classList.add('bg-gray-700', 'p-4', 'rounded-lg', 'mb-4', 'shadow-md');
+                        insightDiv.innerHTML = `
+                            <button class="flex justify-between items-center w-full text-left font-bold text-xl text-blue-300 hover:text-blue-200 focus:outline-none" onclick="toggleInsight(this)">
+                                <span>${player.name}'s Insight</span>
+                                <span class="text-2xl">+</span>
+                            </button>
+                            <div class="insight-content mt-2 text-gray-300 hidden">
+                                <p>Could not generate insight for ${player.name}. The API response was unexpected.</p>
+                            </div>
+                        `;
+                        playerInsightsContainer.appendChild(insightDiv);
+                    }
+                } catch (error) {
+                    // Handle network errors or other exceptions during API call
+                    console.error('Error calling Gemini API:', error);
+                    const insightDiv = document.createElement('div');
+                    insightDiv.classList.add('bg-gray-700', 'p-4', 'rounded-lg', 'mb-4', 'shadow-md');
+                    insightDiv.innerHTML = `
+                        <button class="flex justify-between items-center w-full text-left font-bold text-xl text-blue-300 hover:text-blue-200 focus:outline-none" onclick="toggleInsight(this)">
+                            <span>${player.name}'s Insight</span>
+                            <span class="text-2xl">+</span>
+                        </button>
+                        <div class="insight-content mt-2 text-gray-300 hidden">
+                            <p>Error generating insight for ${player.name}. Please check your network connection or try again later.</p>
+                        </div>
+                    `;
+                    playerInsightsContainer.appendChild(insightDiv);
+                }
+            }
+
+            insightsLoading.classList.add('hidden'); // Hide loading message
+            generateInsightsBtn.disabled = false; // Re-enable button
+        }
+
+        /**
+         * Toggles the visibility of a player's insight content.
+         * This function is called from the dynamically created HTML buttons.
+         * @param {HTMLButtonElement} button - The button element that was clicked.
+         */
+        window.toggleInsight = function(button) {
+            const content = button.nextElementSibling; // The div containing the insight text
+            const icon = button.querySelector('span:last-child'); // The + or - icon
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.textContent = '-'; // Change icon to minus
+            } else {
+                content.classList.add('hidden');
+                icon.textContent = '+'; // Change icon to plus
+            }
+        }
+
+        // Event Listeners
+        startGameBtn.addEventListener('click', startGame);
+        gameArea.addEventListener('click', recordReaction);
+        nextRoundBtn.addEventListener('click', nextRoundOrPlayer);
+        playAgainBtn.addEventListener('click', resetGame);
+        messageOkBtn.addEventListener('click', hideMessageBox);
+        generateInsightsBtn.addEventListener('click', generatePlayerInsights); // New event listener
+
+        // Initial screen setup
+        showScreen(startScreen);
     </script>
 </body>
 </html>
